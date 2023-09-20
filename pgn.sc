@@ -1,9 +1,12 @@
+#!/usr/bin/env -S scala-cli shebang
 //> using scala "3.3.1"
 //> using dep "org.typelevel::toolkit:latest.release"
 //> using repository "https://raw.githubusercontent.com/lichess-org/lila-maven/master"
 //> using dep "org.lichess::scalachess:15.6.7"
 
 import cats.syntax.all.*
+import scala.io.Source
+import java.io.*
 
 import chess.format.pgn.*
 import chess.{Node, Tree, HasId, Mergeable}
@@ -65,6 +68,13 @@ val game2 = """
   1. e4 c5
   """
 
+def writeFile(filename: String, s: String): Unit = {
+    val file = new File(filename)
+    val bw = new BufferedWriter(new FileWriter(file))
+    bw.write(s)
+    bw.close()
+}
+
 given HasId[PgnNodeData, San] with
   extension (a: PgnNodeData) def id: San = a.san
 given Mergeable[PgnNodeData] with
@@ -81,8 +91,14 @@ def merge(t1: ParsedPgn, t2: ParsedPgn): ParsedPgn =
   // ignore comments & tags for now
   ParsedPgn(InitialComments.empty, Tags.empty, Tree.merge(t1.tree, t2.tree))
 
+def main(args: List[String]) =
+  import PgnHelper.toPgn
+  val inputFile = args.get(0).getOrElse(throw new RuntimeException("no path to PGN file found"))
+  val outputFile = args.get(1).getOrElse("theOne.pgn")
+  val pgns = Source.fromFile(inputFile).mkString.split("\n\n\n").map(parse)
+  val theOne = pgns.fold(parse(""))(merge(_, _))
+  writeFile(outputFile, theOne.toPgn.render.value)
 
-import PgnHelper.toPgn
-val g1   = parse(game1)
-val g2   = parse(game2)
-println(merge(g1, g2).toPgn.render)
+main(args.toList)
+
+
