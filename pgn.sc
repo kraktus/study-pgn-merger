@@ -49,6 +49,14 @@ object PgnHelper:
       val game = makeGame(pgn.tags)
       Pgn(pgn.tags, pgn.initialPosition, pgn.tree.flatMap(_.toPgn(game)))
 
+    def onlyMoves: ParsedPgn =
+      ParsedPgn(
+        pgn.initialPosition,
+        pgn.tags,
+        pgn.tree.map(
+          _.map(nodeData => PgnNodeData(nodeData.san, Metas.empty, Nil))
+        )
+      )
 
   private def makeGame(tags: Tags) =
     val g = Game(
@@ -69,17 +77,17 @@ val game2 = """
   """
 
 def writeFile(filename: String, s: String): Unit = {
-    val file = new File(filename)
-    val bw = new BufferedWriter(new FileWriter(file))
-    bw.write(s)
-    bw.close()
+  val file = new File(filename)
+  val bw = new BufferedWriter(new FileWriter(file))
+  bw.write(s)
+  bw.close()
 }
 
 given HasId[PgnNodeData, San] with
   extension (a: PgnNodeData) def id: San = a.san
 given Mergeable[PgnNodeData] with
   extension (x: PgnNodeData)
-  // don't care about the `Metas` for the moment
+    // don't care about the `Metas` for the moment
     def merge(y: PgnNodeData): Option[PgnNodeData] =
       if x.id == y.id then PgnNodeData(x.san, Metas.empty, Nil).some
       else None
@@ -92,13 +100,13 @@ def merge(t1: ParsedPgn, t2: ParsedPgn): ParsedPgn =
   ParsedPgn(InitialComments.empty, Tags.empty, Tree.merge(t1.tree, t2.tree))
 
 def main(args: List[String]) =
-  import PgnHelper.toPgn
-  val inputFile = args.get(0).getOrElse(throw new RuntimeException("no path to PGN file found"))
+  import PgnHelper.{toPgn, onlyMoves}
+  val inputFile = args
+    .get(0)
+    .getOrElse(throw new RuntimeException("no path to PGN file found"))
   val outputFile = args.get(1).getOrElse("theOne.pgn")
-  val pgns = Source.fromFile(inputFile).mkString.split("\n\n\n").map(parse)
+  val pgns = Source.fromFile(inputFile).mkString.split("\n\n\n").map(parse).map(_.onlyMoves)
   val theOne = pgns.fold(parse(""))(merge(_, _))
   writeFile(outputFile, theOne.toPgn.render.value)
 
 main(args.toList)
-
-
