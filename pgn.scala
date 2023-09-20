@@ -2,8 +2,6 @@
 //> using dep "org.typelevel::toolkit:latest.release"
 //> using repository "https://raw.githubusercontent.com/lichess-org/lila-maven/master"
 //> using dep "org.lichess::scalachess:15.6.7"
-//> using dep "dev.optics::monocle-core:3.2.0"
-//> using dep "dev.optics::monocle-macro:3.2.0"
 
 import cats.syntax.all.*
 
@@ -88,12 +86,6 @@ object PgnHelper:
       val game = makeGame(pgn.tags)
       Pgn(pgn.tags, pgn.initialPosition, pgn.tree.flatMap(_.toPgn(game)))
 
-    def cleanTags: ParsedPgn =
-      pgn.copy(tags = Tags.empty)
-
-  extension (pgn: PgnStr)
-    def cleanup = PgnStr:
-      pgn.value.replace("\r", "").replace("\n", " ").trim
 
   private def makeGame(tags: Tags) =
     val g = Game(
