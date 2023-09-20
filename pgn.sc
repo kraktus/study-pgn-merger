@@ -5,48 +5,8 @@
 
 import cats.syntax.all.*
 
-import cats.effect.*
-import monocle.syntax.all.*
-
 import chess.format.pgn.*
 import chess.{Node, Tree, HasId, Mergeable}
-
-val game1 = """
-  1. e4 e5
-  """
-
-val game2 = """
-  1. e4 c5
-  """
-
-given HasId[PgnNodeData, San] with
-  extension (a: PgnNodeData) def id: San = a.san
-given Mergeable[PgnNodeData] with
-  extension (x: PgnNodeData)
-  // don't care about the `Metas` for the moment
-    def merge(y: PgnNodeData): Option[PgnNodeData] =
-      if x.id == y.id then PgnNodeData(x.san, Metas.empty, Nil).some
-      else None
-
-def parse(s: String): ParsedPgn =
-  Parser.full(PgnStr(s)).toOption.get
-
-def merge(t1: ParsedPgn, t2: ParsedPgn): ParsedPgn =
-  // ignore comments & tags for now
-  ParsedPgn(InitialComments.empty, Tags.empty, Tree.merge(t1.tree, t2.tree))
-
-object Hello extends IOApp.Simple:
-  import PgnHelper.*
-  def run =
-    val g1   = parse(game1)
-    val g2   = parse(game2)
-    // count total nodes in the game
-    // IO.println(g1.foldLeft(0)((b, _) => b + 1))
-    // print merged tree
-    IO.println(g1.toPgn.render) >>
-    IO.println(g2.toPgn.render) >>
-    IO.println(merge(g1, g2).toPgn.render)
-
 
 object PgnHelper:
   import chess.MoveOrDrop.*
@@ -96,3 +56,33 @@ object PgnHelper:
       startedAtPly = g.ply,
       clock = tags.clockConfig map Clock.apply
     )
+
+val game1 = """
+  1. e4 e5
+  """
+
+val game2 = """
+  1. e4 c5
+  """
+
+given HasId[PgnNodeData, San] with
+  extension (a: PgnNodeData) def id: San = a.san
+given Mergeable[PgnNodeData] with
+  extension (x: PgnNodeData)
+  // don't care about the `Metas` for the moment
+    def merge(y: PgnNodeData): Option[PgnNodeData] =
+      if x.id == y.id then PgnNodeData(x.san, Metas.empty, Nil).some
+      else None
+
+def parse(s: String): ParsedPgn =
+  Parser.full(PgnStr(s)).toOption.get
+
+def merge(t1: ParsedPgn, t2: ParsedPgn): ParsedPgn =
+  // ignore comments & tags for now
+  ParsedPgn(InitialComments.empty, Tags.empty, Tree.merge(t1.tree, t2.tree))
+
+
+import PgnHelper.toPgn
+val g1   = parse(game1)
+val g2   = parse(game2)
+println(merge(g1, g2).toPgn.render)
