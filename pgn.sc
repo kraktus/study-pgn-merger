@@ -96,17 +96,22 @@ def parse(s: String): ParsedPgn =
   Parser.full(PgnStr(s)).toOption.get
 
 def merge(t1: ParsedPgn, t2: ParsedPgn): ParsedPgn =
-  // ignore comments & tags for now
-  ParsedPgn(InitialComments.empty, Tags.empty, Tree.merge(t1.tree, t2.tree))
+  // arbitrarily keep t1 tags and initial comments
+  ParsedPgn(t1.initialPosition, t1.tags, Tree.merge(t1.tree, t2.tree))
 
 def main(args: List[String]) =
   import PgnHelper.{toPgn, onlyMoves}
   val inputFile = args
     .get(0)
     .getOrElse(throw new RuntimeException("no path to PGN file found"))
-  val outputFile = args.get(1).getOrElse("theOne.pgn")
+  val nbPgn = args.get(1).map(_.toInt)
+  val outputFile = args.get(2).getOrElse("theOne.pgn")
   val pgns = Source.fromFile(inputFile).mkString.split("\n\n\n").map(parse).map(_.onlyMoves)
-  val theOne = pgns.fold(parse(""))(merge(_, _))
+  if merge(pgns(0), pgns(0)) != pgns(0)
+  then
+    throw new RuntimeException("merge is not idempotent on first PGN!")
+  val selectedPgns = pgns.take(nbPgn.getOrElse(pgns.length))
+  val theOne = selectedPgns.foldLeft(pgns(0))(merge(_, _))
   writeFile(outputFile, theOne.toPgn.render.value)
 
 main(args.toList)
