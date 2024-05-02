@@ -1,6 +1,6 @@
 #!/usr/bin/env -S scala-cli shebang
 //> using scala "3.4.1"
-//> using dep "org.typelevel::toolkit:latest.release"
+//> using dep "org.typelevel::cats-core:2.10.0"
 //> using repository "https://raw.githubusercontent.com/lichess-org/lila-maven/master"
 //> using dep "org.lichess::scalachess:16.0.6"
 
@@ -12,9 +12,6 @@ import chess.format.pgn.*
 import chess.{ HasId, Mergeable, Node, Tree }
 
 object PgnHelper:
-  import chess.MoveOrDrop.*
-  import chess.{ Clock, Game, Ply, Situation }
-  import chess.format.pgn.Move
 
   extension (pgn: ParsedPgn)
     def onlyMoves: ParsedPgn =
@@ -47,8 +44,7 @@ given Mergeable[PgnNodeData] with
   extension (x: PgnNodeData)
     // don't care about the `Metas` for the moment
     def merge(y: PgnNodeData): Option[PgnNodeData] =
-      if x.id == y.id then PgnNodeData(x.san, Metas.empty, Nil).some
-      else None
+      Option.when(x.id == y.id)(PgnNodeData(x.san, Metas.empty, Nil))
 
 def parse(s: String): ParsedPgn =
   Parser.full(PgnStr(s)).toOption.get
